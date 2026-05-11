@@ -30,8 +30,6 @@ document.getElementById("toggle1").addEventListener("click", () => {
         button.innerText = "Show Best Times";
         button.classList.remove('active');
     }
-    //document.getElementById("toggle1").innerText =
-    //    showBestTimes ? "Show Normal View" : "Show Best Times";
 });
 
 // Browser Local Time Offset (in hours)
@@ -42,14 +40,13 @@ const localOffset = -(new Date().getTimezoneOffset() / 60);
 fetch("./data.json")
     .then(res => res.json())
     .then(data => {
+        console.time("scheduler");
         const people = data.people.slice(0,193);
 
-        // Grid stored in UTC first
         const utcGrid = Array.from({ length: 24 }, () =>
             Array.from({ length: 7 }, () => [])
         );
 
-        // Convert all users' availability to UTC grid
         people.forEach(person => {
             person.availability.forEach(slot => {
                 const localDay = slot.day;
@@ -62,8 +59,8 @@ fetch("./data.json")
             });
         });
 
-        // Convert UTC grid → LOCAL grid for display
         const localGrid = convertUTCGridToLocal(utcGrid);
+        console.timeEnd("scheduler");
 
         savedLocalGrid = localGrid;
         redraw();
@@ -132,9 +129,8 @@ function drawGrid(grid) {
         }
     }
 
-    drawLabels(); // draw day/hour labels
+    drawLabels();
 
-    // Draw heatmap cells
     for (let hour = 0; hour < rows; hour++) {
         for (let day = 0; day < cols; day++) {
 
@@ -144,12 +140,9 @@ function drawGrid(grid) {
 
             if (count > 0) {
                 const fraction = count / maxPeople;
-
-                // White → Blue gradient
                 const blue = Math.floor(255 * fraction);
                 const r = 255 - blue;
                 const g = 255 - blue;
-
                 ctx.fillStyle = `rgb(${r}, ${g}, 255)`;
             } else {
                 ctx.fillStyle = "white";
@@ -167,7 +160,6 @@ function drawGrid(grid) {
 function makeBestTimeGrid(grid) {
     const slots = [];
 
-    // Collect all time slots
     for (let h = 0; h < rows; h++) {
         for (let d = 0; d < cols; d++) {
             slots.push({
@@ -178,13 +170,9 @@ function makeBestTimeGrid(grid) {
         }
     }
 
-    // Sort by availability (highest → lowest)
     slots.sort((a, b) => b.count - a.count);
-
-    // Top 5 time slots
     const topFive = slots.slice(0, 5);
 
-    // Mark top 5 in boolean grid
     const bestGrid = Array.from({ length: rows }, () =>
         Array.from({ length: cols }, () => false)
     );
@@ -196,7 +184,7 @@ function makeBestTimeGrid(grid) {
     return {
         bestGrid,
         topFive,
-        maxCount: topFive[0].count  // highest availability
+        maxCount: topFive[0].count
     };
 }
 
@@ -204,7 +192,6 @@ function makeBestTimeGrid(grid) {
 function drawBestTimesGrid(bestGrid, maxCount) {
     drawLabels();
 
-    // Draw cells
     for (let hour = 0; hour < rows; hour++) {
         for (let day = 0; day < cols; day++) {
 
@@ -212,9 +199,9 @@ function drawBestTimesGrid(bestGrid, maxCount) {
             const y = (hour + 1) * cellHeight;
 
             if (bestGrid[hour][day]) {
-                ctx.fillStyle = "rgb(0, 128, 255)"; // highlight top 5
+                ctx.fillStyle = "rgb(0, 128, 255)";
             } else {
-                ctx.fillStyle = "#e6e6e6";         // dimmed background
+                ctx.fillStyle = "#e6e6e6";
             }
 
             ctx.fillRect(x, y, cellWidth, cellHeight);
@@ -230,13 +217,11 @@ function drawLabels() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Day labels
     for (let d = 0; d < cols; d++) {
         ctx.fillStyle = "black";
         ctx.fillText(days[d], (d + 1) * cellWidth + cellWidth / 2, cellHeight / 2);
     }
 
-    // Hour labels
     for (let h = 0; h < rows; h++) {
         ctx.fillText(h.toString() + ":00", cellWidth / 2, (h + 1) * cellHeight + cellHeight / 2);
     }
@@ -270,7 +255,6 @@ canvas.addEventListener('click', function(event) {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-   
     const day = Math.floor((x - cellWidth) / cellWidth);
     const hour = Math.floor((y - cellHeight) / cellHeight);
     
@@ -285,8 +269,6 @@ canvas.addEventListener('click', function(event) {
                 `${count} people available:\n` +
                 people.join('\n')
             );
-            
-            
             ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
             ctx.fillRect(
                 (day + 1) * cellWidth,
@@ -302,8 +284,6 @@ canvas.addEventListener('click', function(event) {
                 `${count} person available:\n` +
                 people.join('\n')
             );
-            
-            
             ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
             ctx.fillRect(
                 (day + 1) * cellWidth,
