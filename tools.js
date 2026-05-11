@@ -51,4 +51,3 @@ class UnionFind {
         }
     }
 }
-export {getOffset, convertToMatrix, UnionFind};
